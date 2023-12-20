@@ -27,14 +27,17 @@ def create_dataset(datapath, n_shards, shard_id):
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-path", type=str, required=True, help="Path to raw data")
-    parser.add_argument("--output-path", type=str, required=True, help="Path to save data")
+    parser.add_argument("--data-path", type=str, required=False, 
+                        default="/workspace/datasets/waymo/Motion1.1/tf_example/training", help="Path to raw data")
+    parser.add_argument("--output-path", type=str, required=False,
+                        default="/workspace/mpp/code/data", help="Path to save data")
     parser.add_argument("--n-jobs", type=int, default=20, required=False, help="Number of threads")
     parser.add_argument(
         "--n-shards", type=int, default=8, required=False, help="Use `1/n_shards` of full dataset")
     parser.add_argument(
         "--shard-id", type=int, default=0, required=False, help="Take shard with given id")
-    parser.add_argument("--config", type=str, required=True, help="Config file path")
+    parser.add_argument("--config", type=str, required=False, 
+                        default="/workspace/mpp/code/configs/prerender.yaml", help="Config file path")
     args = parser.parse_args()
     return args
 

@@ -40,7 +40,6 @@ config = get_config(sys.argv[1])
 alias = sys.argv[1].split("/")[-1].split(".")[0]
 try:
     models_path = os.path.join("../models", f"{alias}__{get_git_revision_short_hash()}")
-    os.mkdir(tb_path)
     os.mkdir(models_path)
 except:
     pass
@@ -67,7 +66,8 @@ print("N PARAMS=", params)
 
 train_losses = []
 
-for epoch in tqdm(range(config["train"]["n_epochs"])):
+for epoch in range(config["train"]["n_epochs"]):
+    print(f"epoch:{epoch}")
     pbar = tqdm(dataloader)
     for data in pbar:
         model.train()
@@ -96,43 +96,50 @@ for epoch in tqdm(range(config["train"]["n_epochs"])):
             _coordinates = coordinates.detach() * 10. + torch.Tensor([1.4715e+01, 4.3008e-03]).cuda()
         else:
             _coordinates = coordinates.detach()
+        # 更新当前损失
         if num_steps % 10 == 0:
             pbar.set_description(f"loss = {round(loss.item(), 2)}")
-        if num_steps % 1000 == 0 and this_num_steps > 0:
-            saving_data = {
-                "num_steps": num_steps,
-                "model_state_dict": model.state_dict(),
-                "optimizer_state_dict": optimizer.state_dict(),
-            }
-            if config["train"]["scheduler"]:
-                saving_data["scheduler_state_dict"] = scheduler.state_dict()
-            torch.save(saving_data, os.path.join(models_path, f"last.pth"))
-        if num_steps % (len(dataloader) // 2) == 0 and this_num_steps > 0:
-            del data
-            torch.cuda.empty_cache()
-            model.eval()
-            with torch.no_grad():
-                losses = []
-                min_ades = []
-                first_batch = True
-                for data in tqdm(val_dataloader):
-                    if config["train"]["normalize"]:
-                        data = normalize(data, config)
-                    dict_to_cuda(data)
-                    probas, coordinates, _, _ = model(data, num_steps)
-                    if config["train"]["normalize_output"]:
-                        coordinates = coordinates * 10. + torch.Tensor([1.4715e+01, 4.3008e-03]).cuda()
-                train_losses = []
-            saving_data = {
-                "num_steps": num_steps,
-                "model_state_dict": model.state_dict(),
-                "optimizer_state_dict": optimizer.state_dict(),
-            }
-            if config["train"]["scheduler"]:
-                saving_data["scheduler_state_dict"] = scheduler.state_dict()
-            torch.save(saving_data, os.path.join(models_path, f"{num_steps}.pth"))
+
         num_steps += 1
         this_num_steps += 1
         if "max_iterations" in config["train"] and num_steps > config["train"]["max_iterations"]:
             break
 
+    # 每轮保存一次最新的
+    if True:
+        saving_data = {
+            "num_steps": num_steps,
+            "model_state_dict": model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+        }
+        if config["train"]["scheduler"]:
+            saving_data["scheduler_state_dict"] = scheduler.state_dict()
+        torch.save(saving_data, os.path.join(models_path, f"last.pth"))    
+
+
+    # 每5轮保存一次
+    if epoch % 5 == 0 and epoch != 0:
+        del data
+        torch.cuda.empty_cache()
+        model.eval()
+        with torch.no_grad():
+            losses = []
+            min_ades = []
+            first_batch = True
+            print("start calculate validation results...")
+            for data in tqdm(val_dataloader):
+                if config["train"]["normalize"]:
+                    data = normalize(data, config)
+                dict_to_cuda(data)
+                probas, coordinates, _, _ = model(data, num_steps)
+                if config["train"]["normalize_output"]:
+                    coordinates = coordinates * 10. + torch.Tensor([1.4715e+01, 4.3008e-03]).cuda()
+            train_losses = []
+        saving_data = {
+            "num_steps": num_steps,
+            "model_state_dict": model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+        }
+        if config["train"]["scheduler"]:
+            saving_data["scheduler_state_dict"] = scheduler.state_dict()
+        torch.save(saving_data, os.path.join(models_path, f"{epoch}.pth"))

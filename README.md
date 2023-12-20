@@ -20,8 +20,8 @@ Stepan Konev
 First we need to prepare data for training. The prerender script will convert the original data format into set of ```.npz``` files each containing the data for a single target agent. From ```code``` folder run
 ```
 python3 prerender/prerender.py \
-    --data-path /path/to/original/data \
-    --output-path /output/path/to/prerendered/data \
+    --data-path /workspace/datasets/waymo/Motion1.1/tf_example/training \
+    --output-path /workspace/mpp/code/data \
     --n-jobs 24 \
     --n-shards 1 \
     --shard-id 0 \
